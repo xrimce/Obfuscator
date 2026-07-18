@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AETHER | Advanced Lua Obfuscator</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="stars"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="container animate-fade-in">
+        <!-- Header Section -->
+        <header class="header">
+            <div class="logo-area">
+                <div class="logo-glow"></div>
+                <i data-lucide="shield-alert" class="logo-icon"></i>
+                <h1 class="logo-text">AETHER<span>.obf</span></h1>
+            </div>
+            <p class="subtitle">Secure your scripts with next-generation Lua virtualization and obfuscation.</p>
+        </header>
+
+        <!-- Main Workspace Grid -->
+        <div class="workspace">
+            <!-- Left Panel: Input Editor -->
+            <div class="panel glass">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i data-lucide="code-2" class="icon-accent"></i>
+                        <span>Source Lua Code</span>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn-clear" id="btn-clear" title="Clear Code">
+                            <i data-lucide="trash-2"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="editor-container">
+                    <textarea id="input-code" placeholder="-- Paste your Lua script here...&#10;function hello()&#10;    print('Hello World!')&#10;end" spellcheck="false"></textarea>
+                </div>
+            </div>
+
+            <!-- Configuration & Control Sidebar -->
+            <div class="sidebar glass">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i data-lucide="sliders" class="icon-accent"></i>
+                        <span>Settings</span>
+                    </div>
+                </div>
+                <div class="settings-content">
+                    <div class="setting-group">
+                        <label for="obf-level">Obfuscation Level</label>
+                        <select id="obf-level">
+                            <option value="basic">Basic (Reversal & Header)</option>
+                            <option value="medium">Medium (Bytecode & Hex)</option>
+                            <option value="high" selected>High (Virtualization Noise)</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="minify-code" checked>
+                            <span class="checkmark"></span>
+                            Minify Variables
+                        </label>
+                    </div>
+                    <div class="setting-group">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="watermark-code" checked>
+                            <span class="checkmark"></span>
+                            Add Protection Banner
+                        </label>
+                    </div>
+                    <div class="setting-group">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="anti-tamper">
+                            <span class="checkmark"></span>
+                            Anti-Decryption Hook
+                        </label>
+                    </div>
+                </div>
+
+                <div class="action-footer">
+                    <button class="btn-primary" id="btn-obfuscate">
+                        <span>Obfuscate Script</span>
+                        <i data-lucide="cpu" class="spinner-hide" id="obf-icon"></i>
+                        <div class="spinner hide" id="obf-spinner"></div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Output Editor -->
+            <div class="panel glass">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i data-lucide="lock" class="icon-accent-green"></i>
+                        <span>Obfuscated Code</span>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn-copy" id="btn-copy" title="Copy Output">
+                            <i data-lucide="copy" id="copy-icon"></i>
+                            <span id="copy-text">Copy</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="editor-container">
+                    <textarea id="output-code" placeholder="-- Obfuscated code output will appear here..." readonly spellcheck="false"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Designed for developers by xrimce &copy; 2026. Made with styling aesthetics.</p>
+        </footer>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        const inputCode = document.getElementById('input-code');
+        const outputCode = document.getElementById('output-code');
+        const btnObfuscate = document.getElementById('btn-obfuscate');
+        const btnClear = document.getElementById('btn-clear');
+        const btnCopy = document.getElementById('btn-copy');
+        const obfLevel = document.getElementById('obf-level');
+        const minifyCode = document.getElementById('minify-code');
+        const watermarkCode = document.getElementById('watermark-code');
+        const antiTamper = document.getElementById('anti-tamper');
+        
+        const obfIcon = document.getElementById('obf-icon');
+        const obfSpinner = document.getElementById('obf-spinner');
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            lucide.createIcons({ attrs: { class: 'toast-icon' } });
+            
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        btnClear.addEventListener('click', () => {
+            inputCode.value = '';
+            showToast('Input editor cleared', 'info');
+        });
+
+        btnCopy.addEventListener('click', () => {
+            if (!outputCode.value || outputCode.value.startsWith('-- Obfuscated code')) {
+                showToast('Nothing to copy!', 'error');
+                return;
+            }
+            navigator.clipboard.writeText(outputCode.value)
+                .then(() => {
+                    const copyIcon = document.getElementById('copy-icon');
+                    const copyText = document.getElementById('copy-text');
+                    copyText.innerText = 'Copied!';
+                    copyIcon.setAttribute('data-lucide', 'check');
+                    lucide.createIcons();
+                    showToast('Code copied to clipboard!');
+                    
+                    setTimeout(() => {
+                        copyText.innerText = 'Copy';
+                        copyIcon.setAttribute('data-lucide', 'copy');
+                        lucide.createIcons();
+                    }, 2000);
+                })
+                .catch(() => {
+                    showToast('Failed to copy code.', 'error');
+                });
+        });
+
+        btnObfuscate.addEventListener('click', async () => {
+            const code = inputCode.value.trim();
+            if (!code) {
+                showToast('Please enter some Lua code first!', 'error');
+                return;
+            }
+
+            // Set loading state
+            btnObfuscate.disabled = true;
+            obfIcon.classList.add('hide');
+            obfSpinner.classList.remove('hide');
+
+            try {
+                const response = await fetch('/obfuscate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        luaCode: code,
+                        level: obfLevel.value,
+                        minify: minifyCode.checked,
+                        watermark: watermarkCode.checked,
+                        antiTamper: antiTamper.checked
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Server returned an error');
+                }
+
+                const data = await response.json();
+                outputCode.value = data.obfuscatedCode;
+                showToast('Script obfuscated successfully!');
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to connect to obfuscation server.', 'error');
+            } finally {
+                btnObfuscate.disabled = false;
+                obfIcon.classList.remove('hide');
+                obfSpinner.classList.add('hide');
+            }
+        });
+    </script>
+</body>
+</html>
